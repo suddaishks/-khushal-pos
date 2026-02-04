@@ -3,45 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خوشحال فیبرک | Premium POS</title>
+    <title>Khushal Fabric | Pro POS v3</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        :root { --accent: #be185d; --bg: #f8fafc; }
-        body { background-color: var(--bg); font-family: 'Segoe UI', sans-serif; padding-bottom: 110px; }
-        .navbar { background: #1e293b; color: white; border-bottom: 4px solid var(--accent); position: sticky; top: 0; z-index: 1000; }
-        .product-card { border: none; border-radius: 12px; transition: 0.2s; background: white; overflow: hidden; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; cursor: pointer; }
-        .product-card:active { transform: scale(0.98); }
-        .product-img { height: 180px; object-fit: cover; width: 100%; background: #eee; }
-        .disc-badge { position: absolute; top: 10px; right: 10px; background: var(--accent); color: white; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
-        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; border-top: 1px solid #e2e8f0; box-shadow: 0 -5px 15px rgba(0,0,0,0.05); z-index: 1000; }
-        .btn-accent { background: var(--accent); color: white; border-radius: 10px; font-weight: bold; width: 100%; padding: 12px; }
+        :root { --accent: #be185d; --dark: #0f172a; }
+        body { background: #f8fafc; font-family: 'Segoe UI', sans-serif; padding-bottom: 140px; }
+        .navbar { background: var(--dark); border-bottom: 3px solid var(--accent); }
+        .product-card { border: none; border-radius: 15px; background: white; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; position: relative; }
+        .product-img { height: 150px; object-fit: cover; width: 100%; }
+        .cart-panel { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 25px 25px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); padding: 15px; z-index: 2000; }
+        .cart-item { background: #f1f5f9; border-radius: 10px; padding: 5px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid #e2e8f0; }
+        .remove-btn { color: #ef4444; cursor: pointer; font-size: 18px; line-height: 1; }
     </style>
 </head>
 <body>
 
-<nav class="navbar p-3 mb-3">
-    <div class="container d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold">KHUSHAL FABRIC <span class="badge bg-danger ms-2" style="font-size: 10px;">POS</span></h5>
-        <a href="admin.html" class="btn btn-outline-light btn-sm">ایڈمن لاگ ان</a>
+<nav class="navbar p-3 sticky-top">
+    <div class="container d-flex justify-content-between">
+        <h5 class="text-white mb-0 fw-bold">KHUSHAL FABRIC</h5>
+        <a href="admin.html" class="btn btn-outline-light btn-sm rounded-pill">Admin</a>
     </div>
 </nav>
 
-<div class="container">
+<div class="container mt-3">
     <div id="product-list" class="row g-2">
-        <div class="col-12 text-center mt-5 text-muted small">لوڈنگ ہو رہی ہے...</div>
+        <div class="col-12 text-center text-muted mt-5">لوڈنگ ہو رہی ہے...</div>
     </div>
 </div>
 
-<div class="cart-bar">
+<div class="cart-panel">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-6">
-                <div class="small text-muted">ٹوٹل بل</div>
-                <h4 class="mb-0 fw-bold" style="color:var(--accent)">Rs. <span id="total-price">0</span></h4>
+        <div id="cart-list" class="d-flex overflow-x-auto gap-2 mb-3 pb-2" style="scrollbar-width: none;">
             </div>
-            <div class="col-6">
-                <button class="btn btn-accent shadow-sm" onclick="alert('بل فائنل ہو رہا ہے...')">فائنل بل</button>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small class="text-muted">کل رقم</small>
+                <h3 class="mb-0 fw-bold text-primary">Rs. <span id="total-price">0</span></h3>
             </div>
+            <button class="btn btn-danger btn-lg px-5 rounded-pill shadow" onclick="checkout()">پرنٹ بل</button>
         </div>
     </div>
 </div>
@@ -61,38 +61,51 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    let total = 0;
+    let cart = [];
 
     onSnapshot(collection(db, "products"), (snapshot) => {
         const list = document.getElementById('product-list');
         list.innerHTML = '';
         snapshot.forEach(doc => {
             const p = doc.data();
-            const discount = Number(p.discount) || 0;
-            const discPrice = p.price - (p.price * discount / 100);
-            
+            const fPrice = p.price - (p.price * (p.discount || 0) / 100);
             list.innerHTML += `
                 <div class="col-6 col-md-3">
-                    <div class="product-card" onclick="addToCart(${discPrice})">
-                        ${discount > 0 ? `<div class="disc-badge">-${discount}%</div>` : ''}
-                        <img src="${p.img}" class="product-img" onerror="this.src='https://placehold.co/300x400?text=Suit'">
+                    <div class="product-card" onclick="addToCart('${p.name}', ${fPrice})">
+                        <img src="${p.img}" class="product-img">
                         <div class="p-2">
-                            <div class="small fw-bold text-truncate">${p.name}</div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <span class="text-danger fw-bold small">Rs. ${discPrice}</span>
-                                ${discount > 0 ? `<small class="text-decoration-line-through text-muted" style="font-size:10px">${p.price}</small>` : ''}
-                            </div>
-                            ${p.offerTag ? `<div class="text-success fw-bold" style="font-size:10px">${p.offerTag}</div>` : ''}
+                            <h6 class="small fw-bold mb-0 text-truncate">${p.name}</h6>
+                            <span class="text-danger fw-bold small">Rs. ${fPrice}</span>
                         </div>
                     </div>
                 </div>`;
         });
     });
 
-    window.addToCart = (price) => {
-        total += price;
-        document.getElementById('total-price').innerText = total;
+    window.addToCart = (name, price) => {
+        cart.push({ name, price });
+        renderCart();
     };
+
+    window.removeItem = (index) => {
+        cart.splice(index, 1);
+        renderCart();
+    };
+
+    function renderCart() {
+        let total = 0;
+        const container = document.getElementById('cart-list');
+        container.innerHTML = '';
+        cart.forEach((item, index) => {
+            total += item.price;
+            container.innerHTML += `
+                <div class="cart-item">
+                    <span class="small text-nowrap">${item.name}</span>
+                    <span class="remove-btn" onclick="removeItem(${index})">&times;</span>
+                </div>`;
+        });
+        document.getElementById('total-price').innerText = total;
+    }
 </script>
 </body>
 </html>
