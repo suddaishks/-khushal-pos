@@ -38,7 +38,7 @@
             <div style="border-bottom: 2px dashed #333; margin: 10px 0;"></div>
         </div>
         <div id="cart-content" class="flex-grow-1 overflow-auto">
-            <p class="text-center py-5 text-muted no-print">اسٹاک لوڈ ہو رہا ہے یا کوئی چیز منتخب کریں...</p>
+            <p class="text-center py-5 text-muted no-print">اسٹاک لوڈ ہو رہا ہے...</p>
         </div>
         <div class="border-top pt-3 mt-auto">
             <div class="d-flex justify-content-between h4 fw-bold">
@@ -50,7 +50,10 @@
     </div>
 
     <div class="inventory-panel">
-        <div id="scanner-container" class="d-none no-print"><div id="reader"></div><button class="btn btn-sm btn-dark w-100 mb-3" onclick="stopScanner()">بند کریں</button></div>
+        <div id="scanner-container" class="d-none no-print">
+            <div id="reader"></div>
+            <button class="btn btn-sm btn-dark w-100 mb-3" onclick="stopScanner()">اسکینر بند کریں</button>
+        </div>
         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3" id="product-grid"></div>
     </div>
 </div>
@@ -73,22 +76,26 @@
     let cart = [];
 
     async function loadProducts() {
-        const querySnapshot = await getDocs(collection(db, "products"));
-        const grid = document.getElementById('product-grid');
-        grid.innerHTML = '';
-        querySnapshot.forEach((doc) => {
-            const p = doc.data();
-            grid.innerHTML += `
-                <div class="col">
-                    <div class="card product-card" onclick="window.addToCart('${p.name}', ${p.price})">
-                        <img src="${p.img}" class="product-img">
-                        <div class="card-body p-2 text-center">
-                            <h6 class="fw-bold small mb-1">${p.name}</h6>
-                            <p class="text-danger fw-bold mb-0">Rs. ${p.price}</p>
+        try {
+            const querySnapshot = await getDocs(collection(db, "products"));
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            if(querySnapshot.empty) { grid.innerHTML = '<p class="text-center w-100">کوئی مال موجود نہیں ہے۔ ایڈمن سے اپلوڈ کریں۔</p>'; }
+            querySnapshot.forEach((doc) => {
+                const p = doc.data();
+                grid.innerHTML += `
+                    <div class="col">
+                        <div class="card product-card" onclick="window.addToCart('${p.name}', ${p.price})">
+                            <img src="${p.img}" class="product-img">
+                            <div class="card-body p-2 text-center">
+                                <h6 class="fw-bold small mb-1">${p.name}</h6>
+                                <p class="text-danger fw-bold mb-0">Rs. ${p.price}</p>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
-        });
+                    </div>`;
+            });
+            document.getElementById('cart-content').innerHTML = '<p class="text-center py-5 text-muted no-print">کوئی چیز منتخب کریں</p>';
+        } catch(e) { console.error(e); }
     }
 
     window.addToCart = (name, price) => {
@@ -107,16 +114,28 @@
         cart.forEach((item, i) => {
             total += item.price;
             content.innerHTML += `
-                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
-                    <span class="small">${item.name}</span>
+                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1 text-dark">
+                    <span class="small fw-bold">${i+1}. ${item.name}</span>
                     <div class="d-flex align-items-center">
-                        <span class="fw-bold me-2">Rs. ${item.price}</span>
-                        <button class="btn btn-sm text-danger no-print" onclick="window.removeItem(${i})">✖</button>
+                        <span class="fw-bold me-2 text-danger">Rs. ${item.price}</span>
+                        <button class="btn btn-sm text-danger no-print border-0" onclick="window.removeItem(${i})">✖</button>
                     </div>
                 </div>`;
         });
         document.getElementById('grand-total').innerText = 'Rs. ' + total.toLocaleString();
     }
+
+    // اسکینر کے فنکشنز
+    let html5QrCode;
+    window.startScanner = () => {
+        document.getElementById('scanner-container').classList.remove('d-none');
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+        (text) => { alert("کوڈ مل گیا: " + text); window.stopScanner(); });
+    };
+    window.stopScanner = () => {
+        if(html5QrCode) html5QrCode.stop().then(() => { document.getElementById('scanner-container').classList.add('d-none'); });
+    };
 
     loadProducts();
 </script>
