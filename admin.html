@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel v3</title>
+    <title>Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <style>
-        body { background: #f1f5f9; padding: 20px; }
-        .admin-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .prod-list-item { background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+        body { background: #f1f5f9; padding: 20px; font-family: sans-serif; }
+        .admin-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
+        .prod-list-item { background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #eee; }
         #admin-main { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container" style="max-width: 600px;">
+<div class="container">
     <div id="login-screen" class="admin-card text-center mt-5">
-        <h4 class="fw-bold mb-4">ایڈمن لاگ ان</h4>
-        <input type="password" id="pin" class="form-control mb-3 text-center" placeholder="سیکیورٹی پن">
-        <button onclick="checkLogin()" class="btn btn-primary w-100">داخل ہوں</button>
+        <h4 class="fw-bold mb-4">سیکیورٹی لاگ ان</h4>
+        <input type="password" id="pinInput" class="form-control mb-3 text-center" placeholder="پن درج کریں (1122)">
+        <button onclick="checkLogin()" class="btn btn-primary w-100 p-3">داخل ہوں</button>
     </div>
 
     <div id="admin-main">
         <div class="admin-card mb-4">
             <h5 class="fw-bold text-primary mb-3">نیا مال شامل کریں</h5>
-            <input type="text" id="pName" class="form-control mb-2" placeholder="نام">
+            <input type="text" id="pName" class="form-control mb-2" placeholder="سوٹ کا نام">
             <div class="row g-2">
                 <div class="col-6"><input type="number" id="pPrice" class="form-control mb-2" placeholder="قیمت"></div>
                 <div class="col-6"><input type="number" id="pDisc" class="form-control mb-2" placeholder="ڈسکاؤنٹ %"></div>
             </div>
-            <input type="text" id="pImg" class="form-control mb-3" placeholder="تصویر لنک">
-            <button id="addBtn" class="btn btn-dark w-100 py-3 fw-bold">اسٹاک میں شامل کریں</button>
+            <input type="text" id="pImg" class="form-control mb-3" placeholder="تصویر کا لنک (URL)">
+            <button id="addBtn" class="btn btn-dark w-100 py-3 fw-bold">اسٹاک میں محفوظ کریں</button>
         </div>
 
         <div class="admin-card">
-            <h5 class="fw-bold mb-3">موجودہ اسٹاک (ڈیلیٹ آپشن)</h5>
-            <div id="stock-list">
-                </div>
+            <h5 class="fw-bold mb-3">موجودہ اسٹاک (ڈیلیٹ کریں)</h5>
+            <div id="stock-list"></div>
         </div>
+        <div class="text-center mt-4"><a href="index.html" class="btn btn-link text-decoration-none">← سیلز پیج پر جائیں</a></div>
     </div>
 </div>
 
@@ -45,18 +45,30 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    const firebaseConfig = { /* آپ کا پرانا کنفیگ یہاں ڈالیں */ };
+    const firebaseConfig = {
+        apiKey: "AIzaSyApmZ5_7ohXDQWRALsfO8d7IfwVhJBweas",
+        authDomain: "khushal-pos.firebaseapp.com",
+        projectId: "khushal-pos",
+        storageBucket: "khushal-pos.firebasestorage.app",
+        messagingSenderId: "400013746816",
+        appId: "1:400013746816:web:6f193299df61ac32ee3c65"
+    };
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Login logic
     window.checkLogin = () => {
-        if(document.getElementById('pin').value === "1122") {
+        const val = document.getElementById('pinInput').value;
+        if(val === "1122") {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('admin-main').style.display = 'block';
-        } else { alert("غلط پن!"); }
+        } else {
+            alert("غلط پن!");
+        }
     };
 
-    // اسٹاک لسٹ اور ڈیلیٹ فنکشن
+    // Load and Delete Stock
     onSnapshot(collection(db, "products"), (snapshot) => {
         const div = document.getElementById('stock-list');
         div.innerHTML = '';
@@ -64,25 +76,34 @@
             const data = sDoc.data();
             div.innerHTML += `
                 <div class="prod-list-item">
-                    <span class="small fw-bold">${data.name} (Rs.${data.price})</span>
-                    <button class="btn btn-sm btn-outline-danger" onclick="delProd('${sDoc.id}')">Delete</button>
+                    <span class="small fw-bold">${data.name} - Rs.${data.price}</span>
+                    <button class="btn btn-sm btn-danger" onclick="delProduct('${sDoc.id}')">Delete</button>
                 </div>`;
         });
     });
 
-    window.delProd = async (id) => {
-        if(confirm("کیا آپ اسے ڈیلیٹ کرنا چاہتے ہیں؟")) {
+    window.delProduct = async (id) => {
+        if(confirm("کیا آپ واقعی اسے حذف کرنا چاہتے ہیں؟")) {
             await deleteDoc(doc(db, "products", id));
         }
     };
 
+    // Add Stock
     document.getElementById('addBtn').onclick = async () => {
         const name = document.getElementById('pName').value;
         const price = document.getElementById('pPrice').value;
         const disc = document.getElementById('pDisc').value;
         const img = document.getElementById('pImg').value;
-        await addDoc(collection(db, "products"), { name, price: Number(price), discount: Number(disc), img });
-        alert("محفوظ ہو گیا!");
+
+        if(!name || !price || !img) return alert("معلومات مکمل کریں!");
+
+        await addDoc(collection(db, "products"), { 
+            name, price: Number(price), discount: Number(disc), img 
+        });
+        alert("مال شامل ہوگیا!");
+        document.getElementById('pName').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pImg').value = '';
     };
 </script>
 </body>
