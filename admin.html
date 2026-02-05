@@ -1,51 +1,72 @@
 <!DOCTYPE html>
-<html lang="ur" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <title>Admin Control | Khushal Fabric</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #f1f5f9; padding: 20px; font-family: sans-serif; }
-        .admin-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
-        .prod-list-item { background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #eee; }
-        #admin-main { display: none; }
+        body { background: #0f172a; color: white; padding: 30px; }
+        .admin-box { background: #1e293b; border-radius: 15px; padding: 25px; border: 1px solid #334155; }
+        .form-control { background: #0f172a; border: 1px solid #334155; color: white; }
+        .stock-table { background: #1e293b; border-radius: 15px; overflow: hidden; margin-top: 20px; }
+        #lock-screen { position: fixed; inset: 0; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
+<div id="lock-screen">
+    <div class="text-center" style="width: 280px;">
+        <h4 class="text-warning mb-4">ADMIN ACCESS</h4>
+        <input type="password" id="pin" class="form-control text-center mb-3" placeholder="Enter PIN">
+        <button class="btn btn-warning w-100 fw-bold" onclick="if(document.getElementById('pin').value==='1122') document.getElementById('lock-screen').remove()">UNLOCK</button>
+    </div>
+</div>
+
 <div class="container">
-    <div id="login-screen" class="admin-card text-center mt-5">
-        <h4 class="fw-bold mb-4">سیکیورٹی لاگ ان</h4>
-        <input type="password" id="pinInput" class="form-control mb-3 text-center" placeholder="پن درج کریں (1122)">
-        <button onclick="checkLogin()" class="btn btn-primary w-100 p-3">داخل ہوں</button>
+    <div class="d-flex justify-content-between mb-4">
+        <h3>STOCK <span class="text-warning">MANAGEMENT</span></h3>
+        <a href="index.html" class="btn btn-outline-light">Back to Sales</a>
     </div>
 
-    <div id="admin-main">
-        <div class="admin-card mb-4">
-            <h5 class="fw-bold text-primary mb-3">نیا مال شامل کریں</h5>
-            <input type="text" id="pName" class="form-control mb-2" placeholder="سوٹ کا نام">
-            <div class="row g-2">
-                <div class="col-6"><input type="number" id="pPrice" class="form-control mb-2" placeholder="قیمت"></div>
-                <div class="col-6"><input type="number" id="pDisc" class="form-control mb-2" placeholder="ڈسکاؤنٹ %"></div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="admin-box">
+                <h5 class="text-warning mb-3">Add / Edit Suit</h5>
+                <input type="text" id="name" class="form-control mb-2" placeholder="Suit Name">
+                <input type="number" id="price" class="form-control mb-2" placeholder="Original Price">
+                <input type="number" id="disc" class="form-control mb-2" placeholder="Discount (Optional)">
+                <input type="number" id="stock" class="form-control mb-2" placeholder="Initial Stock Qty">
+                <input type="text" id="img" class="form-control mb-3" placeholder="Image URL">
+                <button id="save" class="btn btn-warning w-100 fw-bold">SAVE TO CLOUD</button>
             </div>
-            <input type="text" id="pImg" class="form-control mb-3" placeholder="تصویر کا لنک (URL)">
-            <button id="addBtn" class="btn btn-dark w-100 py-3 fw-bold">اسٹاک میں محفوظ کریں</button>
         </div>
 
-        <div class="admin-card">
-            <h5 class="fw-bold mb-3">موجودہ اسٹاک (ڈیلیٹ کریں)</h5>
-            <div id="stock-list"></div>
+        <div class="col-md-8">
+            <div class="stock-table shadow p-3">
+                <h5 class="mb-3">Inventory Status</h5>
+                <table class="table table-dark table-hover small">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-list"></tbody>
+                </table>
+            </div>
         </div>
-        <div class="text-center mt-4"><a href="index.html" class="btn btn-link text-decoration-none">← سیلز پیج پر جائیں</a></div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    const firebaseConfig = {
+    const firebaseConfig = { 
         apiKey: "AIzaSyApmZ5_7ohXDQWRALsfO8d7IfwVhJBweas",
         authDomain: "khushal-pos.firebaseapp.com",
         projectId: "khushal-pos",
@@ -53,57 +74,43 @@
         messagingSenderId: "400013746816",
         appId: "1:400013746816:web:6f193299df61ac32ee3c65"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Login logic
-    window.checkLogin = () => {
-        const val = document.getElementById('pinInput').value;
-        if(val === "1122") {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('admin-main').style.display = 'block';
-        } else {
-            alert("غلط پن!");
-        }
-    };
-
-    // Load and Delete Stock
-    onSnapshot(collection(db, "products"), (snapshot) => {
-        const div = document.getElementById('stock-list');
-        div.innerHTML = '';
-        snapshot.forEach(sDoc => {
-            const data = sDoc.data();
-            div.innerHTML += `
-                <div class="prod-list-item">
-                    <span class="small fw-bold">${data.name} - Rs.${data.price}</span>
-                    <button class="btn btn-sm btn-danger" onclick="delProduct('${sDoc.id}')">Delete</button>
-                </div>`;
+    onSnapshot(collection(db, "products"), (snap) => {
+        const list = document.getElementById('stock-list');
+        list.innerHTML = '';
+        snap.forEach(sDoc => {
+            const p = sDoc.data();
+            list.innerHTML += `
+                <tr>
+                    <td><img src="${p.img}" width="40" height="40" style="object-fit:cover; border-radius:5px"></td>
+                    <td>${p.name}</td>
+                    <td>${p.price}</td>
+                    <td class="${p.stock < 5 ? 'text-danger fw-bold' : ''}">${p.stock || 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="editStock('${sDoc.id}', ${p.stock})">Add</button>
+                        <button class="btn btn-sm btn-danger" onclick="del('${sDoc.id}')">X</button>
+                    </td>
+                </tr>`;
         });
     });
 
-    window.delProduct = async (id) => {
-        if(confirm("کیا آپ واقعی اسے حذف کرنا چاہتے ہیں؟")) {
-            await deleteDoc(doc(db, "products", id));
-        }
+    window.del = async (id) => { if(confirm("Remove Product?")) await deleteDoc(doc(db, "products", id)); };
+    
+    window.editStock = async (id, current) => {
+        const add = prompt("How many more suits to add?", "0");
+        if(add) await updateDoc(doc(db, "products", id), { stock: current + Number(add) });
     };
 
-    // Add Stock
-    document.getElementById('addBtn').onclick = async () => {
-        const name = document.getElementById('pName').value;
-        const price = document.getElementById('pPrice').value;
-        const disc = document.getElementById('pDisc').value;
-        const img = document.getElementById('pImg').value;
-
-        if(!name || !price || !img) return alert("معلومات مکمل کریں!");
-
-        await addDoc(collection(db, "products"), { 
-            name, price: Number(price), discount: Number(disc), img 
-        });
-        alert("مال شامل ہوگیا!");
-        document.getElementById('pName').value = '';
-        document.getElementById('pPrice').value = '';
-        document.getElementById('pImg').value = '';
+    document.getElementById('save').onclick = async () => {
+        const name = document.getElementById('name').value, price = document.getElementById('price').value,
+              disc = document.getElementById('disc').value || 0, stock = document.getElementById('stock').value, 
+              img = document.getElementById('img').value;
+        if(name && price && img) {
+            await addDoc(collection(db, "products"), { name, price: Number(price), discount: Number(disc), stock: Number(stock), img });
+            alert("Product Added!"); 
+        }
     };
 </script>
 </body>
