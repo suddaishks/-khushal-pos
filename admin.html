@@ -1,78 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin | Stock</title>
+    <title>خوشحال فیبرک - ایڈمن</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { background: #0f172a; color: white; padding: 20px; }
-        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 15px; padding: 20px; }
-        .form-control { background: #0f172a; border: 1px solid #334155; color: white; margin-bottom: 12px; }
-        .list-item { background: #111827; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-left: 5px solid #c5a059; }
-        .p-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-right: 15px; background: #334155; }
+        body { background: #f8f9fa; padding: 20px; }
+        .admin-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .suit-list-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-warning">STOCK CONTROL</h3>
-        <a href="index.html" class="btn btn-outline-light rounded-pill px-4">Back to Sales</a>
+        <h2 class="fw-bold text-dark">STOCK ADMIN (اسٹاک مینجمنٹ)</h2>
+        <a href="index.html" class="btn btn-dark">BACK TO SALES (سیلز پیج)</a>
     </div>
 
     <div class="row g-4">
+        <!-- سوٹ اپلوڈ اور ایڈٹ فارم -->
         <div class="col-md-4">
-            <div class="card-custom shadow">
-                <h6>Add New Product</h6>
-                <input type="text" id="n" class="form-control" placeholder="Product Name">
-                <input type="number" id="p" class="form-control" placeholder="Price">
-                <input type="number" id="s" class="form-control" placeholder="Stock Quantity">
-                <input type="text" id="i" class="form-control" placeholder="Image URL">
-                <button id="add" class="btn btn-warning w-100 fw-bold py-3 mt-2">UPDATE CLOUD</button>
+            <div class="admin-card">
+                <h5 id="formTitle" class="fw-bold mb-3 text-primary">نیا سوٹ شامل کریں</h5>
+                <input type="hidden" id="editId">
+                <input type="text" id="pName" class="form-control mb-2" placeholder="سوٹ کا نام">
+                <input type="number" id="pPrice" class="form-control mb-2" placeholder="قیمت (Rs)">
+                <input type="number" id="pStock" class="form-control mb-2" placeholder="اسٹاک (کتنے سوٹ ہیں)">
+                <input type="text" id="pImg" class="form-control mb-3" placeholder="تصویر کا لنک (Image URL)">
+                <button id="saveBtn" class="btn btn-primary w-100 fw-bold" onclick="saveProduct()">محفوظ کریں (SAVE)</button>
+                <button id="cancelBtn" class="btn btn-light w-100 mt-2 d-none" onclick="resetForm()">کینسل (CANCEL)</button>
             </div>
         </div>
+
+        <!-- اسٹاک کی لسٹ -->
         <div class="col-md-8">
-            <div class="card-custom">
-                <h6>Current Stock List</h6>
-                <div id="stock-list"></div>
+            <div class="admin-card">
+                <h5 class="fw-bold mb-3">موجودہ اسٹاک لسٹ</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>تصویر</th>
+                                <th>نام</th>
+                                <th>قیمت</th>
+                                <th>اسٹاک</th>
+                                <th>عمل (Actions)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryList">
+                            <!-- لسٹ یہاں لوڈ ہوگی -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "...", authDomain: "...", projectId: "khushal-pos", storageBucket: "...", messagingSenderId: "...", appId: "..." };
+    const firebaseConfig = JSON.parse(__firebase_config);
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const colRef = collection(db, "artifacts", "khushal-pos", "public", "data", "suits");
 
-    onSnapshot(collection(db, "products"), (snap) => {
-        const list = document.getElementById('stock-list'); list.innerHTML = '';
-        snap.forEach(sDoc => {
-            const d = sDoc.data();
-            list.innerHTML += `<div class="list-item">
-                <div class="d-flex align-items-center">
-                    <img src="${d.img}" class="p-thumb" onerror="this.src='https://via.placeholder.com/50'">
-                    <div><b>${d.name}</b><br><small class="text-muted">Price: ${d.price} | Stock: ${d.stock}</small></div>
-                </div>
-                <button class="btn btn-danger btn-sm" onclick="del('${sDoc.id}')">Delete</button>
-            </div>`;
+    // لسٹ دکھانا
+    onSnapshot(colRef, (snapshot) => {
+        const list = document.getElementById('inventoryList');
+        list.innerHTML = '';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            list.innerHTML += `
+                <tr>
+                    <td><img src="${data.img}" class="suit-list-img" onerror="this.src='https://via.placeholder.com/50'"></td>
+                    <td><b>${data.name}</b></td>
+                    <td>Rs. ${data.price}</td>
+                    <td>${data.stock}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info text-white me-1" onclick="startEdit('${doc.id}', '${data.name}', ${data.price}, ${data.stock}, '${data.img}')">
+                            <i class="bi bi-pencil"></i> ایڈٹ
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteItem('${doc.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
         });
     });
 
-    window.del = async (id) => { if(confirm("Delete this?")) await deleteDoc(doc(db, "products", id)); };
+    // محفوظ یا اپ ڈیٹ کرنا
+    window.saveProduct = async () => {
+        const id = document.getElementById('editId').value;
+        const data = {
+            name: document.getElementById('pName').value,
+            price: Number(document.getElementById('pPrice').value),
+            stock: Number(document.getElementById('pStock').value),
+            img: document.getElementById('pImg').value
+        };
 
-    document.getElementById('add').onclick = async () => {
-        const name = document.getElementById('n').value, price = document.getElementById('p').value,
-              stock = document.getElementById('s').value, img = document.getElementById('i').value;
-        if(name && price && img) {
-            await addDoc(collection(db, "products"), { name, price: Number(price), stock: Number(stock), img });
-            alert("Added!");
+        if (!data.name || !data.price) return alert("براہ کرم تمام معلومات لکھیں!");
+
+        if (id) {
+            await updateDoc(doc(db, "artifacts", "khushal-pos", "public", "data", "suits", id), data);
+            alert("سوٹ اپ ڈیٹ ہو گیا!");
+        } else {
+            await addDoc(colRef, data);
+            alert("نیا سوٹ شامل ہو گیا!");
+        }
+        resetForm();
+    };
+
+    // ایڈٹ شروع کرنا
+    window.startEdit = (id, name, price, stock, img) => {
+        document.getElementById('editId').value = id;
+        document.getElementById('pName').value = name;
+        document.getElementById('pPrice').value = price;
+        document.getElementById('pStock').value = stock;
+        document.getElementById('pImg').value = img;
+        
+        document.getElementById('formTitle').innerText = "سوٹ کی معلومات بدلیں (EDITING)";
+        document.getElementById('saveBtn').innerText = "اپ ڈیٹ کریں (UPDATE)";
+        document.getElementById('cancelBtn').classList.remove('d-none');
+    };
+
+    window.resetForm = () => {
+        document.getElementById('editId').value = '';
+        document.getElementById('pName').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pStock').value = '';
+        document.getElementById('pImg').value = '';
+        document.getElementById('formTitle').innerText = "نیا سوٹ شامل کریں";
+        document.getElementById('saveBtn').innerText = "محفوظ کریں (SAVE)";
+        document.getElementById('cancelBtn').classList.add('d-none');
+    };
+
+    window.deleteItem = async (id) => {
+        if (confirm("کیا آپ واقعی اسے ڈیلیٹ کرنا چاہتے ہیں؟")) {
+            await deleteDoc(doc(db, "artifacts", "khushal-pos", "public", "data", "suits", id));
         }
     };
 </script>
 </body>
 </html>
+
