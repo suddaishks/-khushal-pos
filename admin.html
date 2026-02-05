@@ -1,58 +1,55 @@
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خوشحال فیبرک - ایڈمن</title>
+    <title>Admin | Stock Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { background: #f8f9fa; padding: 20px; }
-        .admin-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .suit-list-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+        body { background: #0f172a; color: white; padding: 20px; font-family: sans-serif; }
+        .admin-card { background: #1e293b; border-radius: 15px; padding: 20px; border: 1px solid #334155; }
+        .form-control { background: #0f172a; border: 1px solid #334155; color: white; margin-bottom: 10px; }
+        .form-control:focus { background: #0f172a; color: white; border-color: #c5a059; box-shadow: none; }
+        .table-dark { background: #1e293b; border-radius: 10px; overflow: hidden; }
+        #lock-screen { position: fixed; inset: 0; background: #0f172a; z-index: 1000; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
+<div id="lock-screen">
+    <div class="text-center" style="max-width: 300px;">
+        <h4 class="text-warning mb-3">ADMIN PIN</h4>
+        <input type="password" id="pin" class="form-control text-center py-2" placeholder="••••">
+        <button class="btn btn-warning w-100 fw-bold" onclick="if(document.getElementById('pin').value==='1122') document.getElementById('lock-screen').remove()">UNLOCK</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark">STOCK ADMIN (اسٹاک مینجمنٹ)</h2>
-        <a href="index.html" class="btn btn-dark">BACK TO SALES (سیلز پیج)</a>
+        <h3 class="fw-bold text-warning">STOCK MANAGEMENT</h3>
+        <a href="index.html" class="btn btn-outline-light px-4">Back to Sales</a>
     </div>
 
     <div class="row g-4">
-        <!-- سوٹ اپلوڈ اور ایڈٹ فارم -->
         <div class="col-md-4">
-            <div class="admin-card">
-                <h5 id="formTitle" class="fw-bold mb-3 text-primary">نیا سوٹ شامل کریں</h5>
-                <input type="hidden" id="editId">
-                <input type="text" id="pName" class="form-control mb-2" placeholder="سوٹ کا نام">
-                <input type="number" id="pPrice" class="form-control mb-2" placeholder="قیمت (Rs)">
-                <input type="number" id="pStock" class="form-control mb-2" placeholder="اسٹاک (کتنے سوٹ ہیں)">
-                <input type="text" id="pImg" class="form-control mb-3" placeholder="تصویر کا لنک (Image URL)">
-                <button id="saveBtn" class="btn btn-primary w-100 fw-bold" onclick="saveProduct()">محفوظ کریں (SAVE)</button>
-                <button id="cancelBtn" class="btn btn-light w-100 mt-2 d-none" onclick="resetForm()">کینسل (CANCEL)</button>
+            <div class="admin-card shadow">
+                <h5 class="mb-3 text-warning">Add New Suit</h5>
+                <input type="text" id="name" class="form-control" placeholder="Suit Name">
+                <input type="number" id="price" class="form-control" placeholder="Price (Rs)">
+                <input type="number" id="disc" class="form-control" placeholder="Discount (Rs) - Optional">
+                <input type="number" id="stock" class="form-control" placeholder="Stock Quantity">
+                <input type="text" id="img" class="form-control" placeholder="Image Link (URL)">
+                <button id="save" class="btn btn-warning w-100 fw-bold py-2 mt-2">SAVE PRODUCT</button>
             </div>
         </div>
 
-        <!-- اسٹاک کی لسٹ -->
         <div class="col-md-8">
             <div class="admin-card">
-                <h5 class="fw-bold mb-3">موجودہ اسٹاک لسٹ</h5>
+                <h5 class="mb-3">Inventory Status</h5>
                 <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>تصویر</th>
-                                <th>نام</th>
-                                <th>قیمت</th>
-                                <th>اسٹاک</th>
-                                <th>عمل (Actions)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryList">
-                            <!-- لسٹ یہاں لوڈ ہوگی -->
-                        </tbody>
+                    <table class="table table-dark table-hover align-middle">
+                        <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+                        <tbody id="stock-list"></tbody>
                     </table>
                 </div>
             </div>
@@ -61,90 +58,48 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    const firebaseConfig = JSON.parse(__firebase_config);
+    const firebaseConfig = { apiKey: "AIzaSyApmZ5_7ohXDQWRALsfO8d7IfwVhJBweas", projectId: "khushal-pos", storageBucket: "khushal-pos.firebasestorage.app", appId: "1:400013746816:web:6f193299df61ac32ee3c65" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const colRef = collection(db, "artifacts", "khushal-pos", "public", "data", "suits");
 
-    // لسٹ دکھانا
-    onSnapshot(colRef, (snapshot) => {
-        const list = document.getElementById('inventoryList');
-        list.innerHTML = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
+    onSnapshot(collection(db, "products"), (snap) => {
+        const list = document.getElementById('stock-list'); list.innerHTML = '';
+        snap.forEach(sDoc => {
+            const p = sDoc.data();
             list.innerHTML += `
                 <tr>
-                    <td><img src="${data.img}" class="suit-list-img" onerror="this.src='https://via.placeholder.com/50'"></td>
-                    <td><b>${data.name}</b></td>
-                    <td>Rs. ${data.price}</td>
-                    <td>${data.stock}</td>
+                    <td><img src="${p.img}" width="40" height="40" style="object-fit:cover; border-radius:5px"></td>
+                    <td>${p.name}</td>
+                    <td>${p.price}</td>
+                    <td class="${p.stock < 5 ? 'text-danger fw-bold' : ''}">${p.stock}</td>
                     <td>
-                        <button class="btn btn-sm btn-info text-white me-1" onclick="startEdit('${doc.id}', '${data.name}', ${data.price}, ${data.stock}, '${data.img}')">
-                            <i class="bi bi-pencil"></i> ایڈٹ
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteItem('${doc.id}')">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        <button class="btn btn-sm btn-info me-1" onclick="addMore('${sDoc.id}', ${p.stock})">+Stock</button>
+                        <button class="btn btn-sm btn-danger" onclick="del('${sDoc.id}')">Del</button>
                     </td>
                 </tr>`;
         });
     });
 
-    // محفوظ یا اپ ڈیٹ کرنا
-    window.saveProduct = async () => {
-        const id = document.getElementById('editId').value;
-        const data = {
-            name: document.getElementById('pName').value,
-            price: Number(document.getElementById('pPrice').value),
-            stock: Number(document.getElementById('pStock').value),
-            img: document.getElementById('pImg').value
-        };
-
-        if (!data.name || !data.price) return alert("براہ کرم تمام معلومات لکھیں!");
-
-        if (id) {
-            await updateDoc(doc(db, "artifacts", "khushal-pos", "public", "data", "suits", id), data);
-            alert("سوٹ اپ ڈیٹ ہو گیا!");
-        } else {
-            await addDoc(colRef, data);
-            alert("نیا سوٹ شامل ہو گیا!");
-        }
-        resetForm();
+    window.del = async (id) => { if(confirm("Remove?")) await deleteDoc(doc(db, "products", id)); };
+    
+    window.addMore = async (id, cur) => {
+        const amt = prompt("How many suits to add?", "0");
+        if(amt) await updateDoc(doc(db, "products", id), { stock: cur + Number(amt) });
     };
 
-    // ایڈٹ شروع کرنا
-    window.startEdit = (id, name, price, stock, img) => {
-        document.getElementById('editId').value = id;
-        document.getElementById('pName').value = name;
-        document.getElementById('pPrice').value = price;
-        document.getElementById('pStock').value = stock;
-        document.getElementById('pImg').value = img;
-        
-        document.getElementById('formTitle').innerText = "سوٹ کی معلومات بدلیں (EDITING)";
-        document.getElementById('saveBtn').innerText = "اپ ڈیٹ کریں (UPDATE)";
-        document.getElementById('cancelBtn').classList.remove('d-none');
-    };
-
-    window.resetForm = () => {
-        document.getElementById('editId').value = '';
-        document.getElementById('pName').value = '';
-        document.getElementById('pPrice').value = '';
-        document.getElementById('pStock').value = '';
-        document.getElementById('pImg').value = '';
-        document.getElementById('formTitle').innerText = "نیا سوٹ شامل کریں";
-        document.getElementById('saveBtn').innerText = "محفوظ کریں (SAVE)";
-        document.getElementById('cancelBtn').classList.add('d-none');
-    };
-
-    window.deleteItem = async (id) => {
-        if (confirm("کیا آپ واقعی اسے ڈیلیٹ کرنا چاہتے ہیں؟")) {
-            await deleteDoc(doc(db, "artifacts", "khushal-pos", "public", "data", "suits", id));
-        }
+    document.getElementById('save').onclick = async () => {
+        const n = document.getElementById('name').value, p = document.getElementById('price').value,
+              d = document.getElementById('disc').value || 0, s = document.getElementById('stock').value, 
+              i = document.getElementById('img').value;
+        if(n && p && s && i) {
+            await addDoc(collection(db, "products"), { name: n, price: Number(p), discount: Number(d), stock: Number(s), img: i });
+            alert("Added!"); 
+            ["name", "price", "disc", "stock", "img"].forEach(id => document.getElementById(id).value = '');
+        } else alert("Fill all fields!");
     };
 </script>
 </body>
 </html>
-
