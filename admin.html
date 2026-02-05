@@ -3,43 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin | Khushal Fabric</title>
+    <title>Admin | Stock</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #121212; color: white; padding: 20px; }
-        .box { background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; }
-        .form-control { background: #222; border: 1px solid #444; color: white; }
-        .form-control:focus { background: #222; color: white; border-color: #c5a059; }
-        .p-list-item { background: #252525; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        body { background: #0f172a; color: white; padding: 20px; }
+        .card-custom { background: #1e293b; border: 1px solid #334155; border-radius: 15px; padding: 20px; }
+        .form-control { background: #0f172a; border: 1px solid #334155; color: white; margin-bottom: 12px; }
+        .list-item { background: #111827; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-left: 5px solid #c5a059; }
+        .p-thumb { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-right: 15px; background: #334155; }
     </style>
 </head>
 <body>
 
-<div id="login" style="position:fixed; inset:0; background:#121212; z-index:99; display:flex; align-items:center; justify-content:center;">
-    <div class="text-center">
-        <h5>MASTER PIN</h5>
-        <input type="password" id="pin" class="form-control text-center mb-3">
-        <button class="btn btn-warning w-100 fw-bold" onclick="if(document.getElementById('pin').value==='1122') document.getElementById('login').remove()">UNLOCK</button>
-    </div>
-</div>
-
 <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-warning">STOCK CONTROL</h3>
+        <a href="index.html" class="btn btn-outline-light rounded-pill px-4">Back to Sales</a>
+    </div>
+
     <div class="row g-4">
         <div class="col-md-4">
-            <div class="box shadow">
-                <h5 class="text-warning mb-3">Add New Product</h5>
-                <input type="text" id="n" class="form-control mb-2" placeholder="Suit Name">
-                <input type="number" id="p" class="form-control mb-2" placeholder="Price">
-                <input type="number" id="d" class="form-control mb-2" placeholder="Discount">
-                <input type="number" id="s" class="form-control mb-2" placeholder="Initial Stock">
-                <input type="text" id="i" class="form-control mb-3" placeholder="Image Link">
-                <button id="save" class="btn btn-warning w-100 fw-bold">SAVE PRODUCT</button>
+            <div class="card-custom shadow">
+                <h6>Add New Product</h6>
+                <input type="text" id="n" class="form-control" placeholder="Product Name">
+                <input type="number" id="p" class="form-control" placeholder="Price">
+                <input type="number" id="s" class="form-control" placeholder="Stock Quantity">
+                <input type="text" id="i" class="form-control" placeholder="Image URL">
+                <button id="add" class="btn btn-warning w-100 fw-bold py-3 mt-2">UPDATE CLOUD</button>
             </div>
         </div>
         <div class="col-md-8">
-            <div class="box">
-                <h5 class="mb-3">Inventory Status</h5>
-                <div id="stock-display"></div>
+            <div class="card-custom">
+                <h6>Current Stock List</h6>
+                <div id="stock-list"></div>
             </div>
         </div>
     </div>
@@ -54,24 +50,27 @@
     const db = getFirestore(app);
 
     onSnapshot(collection(db, "products"), (snap) => {
-        const div = document.getElementById('stock-display'); div.innerHTML = '';
+        const list = document.getElementById('stock-list'); list.innerHTML = '';
         snap.forEach(sDoc => {
             const d = sDoc.data();
-            div.innerHTML += `<div class="p-list-item">
-                <div><b>${d.name}</b><br><small class="text-muted">Price: ${d.price} | Stock: ${d.stock}</small></div>
+            list.innerHTML += `<div class="list-item">
+                <div class="d-flex align-items-center">
+                    <img src="${d.img}" class="p-thumb" onerror="this.src='https://via.placeholder.com/50'">
+                    <div><b>${d.name}</b><br><small class="text-muted">Price: ${d.price} | Stock: ${d.stock}</small></div>
+                </div>
                 <button class="btn btn-danger btn-sm" onclick="del('${sDoc.id}')">Delete</button>
             </div>`;
         });
     });
 
-    window.del = async (id) => { if(confirm("Remove product?")) await deleteDoc(doc(db, "products", id)); };
+    window.del = async (id) => { if(confirm("Delete this?")) await deleteDoc(doc(db, "products", id)); };
 
-    document.getElementById('save').onclick = async () => {
+    document.getElementById('add').onclick = async () => {
         const name = document.getElementById('n').value, price = document.getElementById('p').value,
-              disc = document.getElementById('d').value || 0, stock = document.getElementById('s').value, img = document.getElementById('i').value;
+              stock = document.getElementById('s').value, img = document.getElementById('i').value;
         if(name && price && img) {
-            await addDoc(collection(db, "products"), { name, price: Number(price), discount: Number(disc), stock: Number(stock), img });
-            alert("Done!");
+            await addDoc(collection(db, "products"), { name, price: Number(price), stock: Number(stock), img });
+            alert("Added!");
         }
     };
 </script>
